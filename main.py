@@ -19,9 +19,9 @@ class MainApp(ctk.CTk):
         self.title(APP_TITLE)
         self.date = date.today()
         self.stocks = {
-            "TSLA" : yf.download("TSLA", start="2024-01-01", end=f"{self.date}", interval="1d"),
-            "AAPL" : yf.download("AAPL", start="2024-01-01", end=f"{self.date}", interval="1d"),
-            "NVDA" : yf.download("NVDA", start="2024-01-01", end=f"{self.date}", interval="1d")
+            "TSLA" : yf.download("TSLA", start="2024-01-01", end=f"{self.date}", interval="1d", auto_adjust=True),
+            "AAPL" : yf.download("AAPL", start="2024-01-01", end=f"{self.date}", interval="1d", auto_adjust=True),
+            "NVDA" : yf.download("NVDA", start="2024-01-01", end=f"{self.date}", interval="1d", auto_adjust=True)
         }
         self.protocol("WM_DELETE_WINDOW", self.quit)
         self.show_login()
