@@ -3,6 +3,9 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import mplcursors
 import pandas as pd
+import numpy as np
+from mplfinance.original_flavor import candlestick_ohlc
+import matplotlib.dates as mdates
 
 
 class Graph(ctk.CTkFrame):
@@ -23,9 +26,10 @@ class Graph(ctk.CTkFrame):
         self.master.grid_columnconfigure(0, weight=1)
 
         #Graphique initiale
-        self.fig, self.ax = plt.subplots(figsize=(9, 6))
+        self.fig, self.ax = plt.subplots(figsize=(10, 7))
         self.fig.patch.set_facecolor("black")
         self.ax.set_facecolor("black")
+        self.ax.set_title(f"Graphique de {self.nom}", color='white')
 
         self.ax.spines['bottom'].set_color('white')
         self.ax.spines['left'].set_color('white')
@@ -37,48 +41,51 @@ class Graph(ctk.CTkFrame):
         self.ax.yaxis.label.set_color('white')
         self.ax.title.set_color('white')
 
-        #canvas
+        self.boutton_retour = ctk.CTkButton(self, text= "⬅️", fg_color="transparent", hover_color="gray", font=("Arial", 40), command= self.retour)
+        self.boutton_retour.grid(row=0, column=0, padx=5, pady=0, sticky="nsew")
+
         self.canvas = FigureCanvasTkAgg(self.fig, master=self)
         self.canvas.get_tk_widget().grid(row=1, column=0, columnspan=3, pady=(10, 10))
 
-        #Boutons périodes
-        self.frame_periodes = ctk.CTkFrame(self, fg_color="transparent")
-        self.frame_periodes.grid(row=2, column=0, columnspan=3, pady=(20, 10), sticky="ew")
-        self.frame_periodes.grid_columnconfigure((0, 1, 2), weight=1)
+        def zoom(event):
+            if event.name != 'scroll_event':
+                return
 
-        periodes = ["1M", "3M", "1A"]
-        for i, p in enumerate(periodes):
-            bouton = ctk.CTkButton(self.frame_periodes,text=p,fg_color="transparent",hover_color="gray30",font=("Arial", 18, "bold"),command=lambda per=p: self.afficher_periode(per))
-            bouton.grid(row=0, column=i, padx=10, pady=5, sticky="ew")
+            base_scale = 1.2
 
-        #Bouton retour
-        self.watchlist_button = ctk.CTkButton(self, text="Retour",fg_color="transparent",hover_color="light green",font=("Arial", 15, "bold"),command=self.retour)
-        self.watchlist_button.grid(row=0, column=0, pady=(0, 0))
+            # Sens du zoom
+            if event.button == 'up':
+                scale_factor = 1 / base_scale
+            elif event.button == 'down':
+                scale_factor = base_scale
+            else:
+                return
 
-        # Affiche le graphique par défaut
-        self.afficher_periode("1A")
+            # Limites actuelles
+            xlim = self.ax.get_xlim()
 
+            xdata = event.xdata if event.xdata is not None else (xlim[0] + xlim[1]) / 2
 
-    def afficher_periode(self, periode):
-        data = self.stocks[self.nom]
-        if len(data) < 2:
-            return
+            # Nouvelle taille
+            new_width = (xlim[1] - xlim[0]) * scale_factor
 
-        if periode == "1M":
-            df_filtre = data[data.index > (data.index[-1] - pd.DateOffset(months=1))] #fonction de pandas qui créer un décalage temporel (offset) de 1 mois
-        elif periode == "3M":
-            df_filtre = data[data.index > (data.index[-1] - pd.DateOffset(months=3))]
-        elif periode == "1A":
-            df_filtre = data[data.index > (data.index[-1] - pd.DateOffset(years=1))]
-        else:
-            df_filtre = data
+            # Calcul proportionnel
+            relx = (xlim[1] - xdata) / (xlim[1] - xlim[0])
 
-        self.redessiner_graphique(df_filtre, periode)
+            # Mise à jour des axes
+            self.ax.set_xlim([xdata - new_width * (1 - relx), xdata + new_width * relx])
 
+            self.canvas.draw_idle()
 
-    def redessiner_graphique(self, df, periode):
+        # Connecte l'événement de molette
+        self.canvas.mpl_connect("scroll_event", zoom)
+        
+        self.dessiner_graphique(self.stocks[self.nom])
+
+    def dessiner_graphique(self, dataf):
         self.ax.clear()
 
+        self.ax.set_title(f"Graphique de {self.nom}", color='white')
         self.ax.set_facecolor("black")
         for spine in self.ax.spines.values():
             spine.set_color("white")
@@ -89,43 +96,25 @@ class Graph(ctk.CTkFrame):
         self.ax.title.set_color('white')
         self.ax.grid(False)
 
-        x = df.index
-        y = df["Close"]
+        df = dataf.copy()
 
-        # Petite fonction pour convertir correctement les valeurs sinon erreur
-        def to_float(v):
-            if hasattr(v, "iloc"): #sert à vérifier si un objet possède un attribut
-                return float(v.iloc[0])
-            return float(v)
+        df["DateNum"] = mdates.date2num(df.index)
+        ohlc = df[["DateNum", "Open", "High", "Low", "Close"]].values
 
-        # Tracé coloré vert/rouge
-        line_segments = []
-        for i in range(1, len(x)): #par segment
-            prev_val = to_float(y.iloc[i - 1])
-            curr_val = to_float(y.iloc[i])
-            if curr_val > prev_val:
-                color = "green"
-            else:
-                color="red"
+        candlestick_ohlc(self.ax, ohlc, width=0.6, colorup='green', colordown='red', alpha=0.9)
 
-            (l,) = self.ax.plot(x[i - 1:i + 1], [prev_val, curr_val], color=color, linewidth=2) #trace petit segment de courbe entre x[i-1] et x[i]
-            line_segments.append(l)
+        price_text = self.ax.text(0.05, 0.90, "", transform=self.ax.transAxes, ha='left', va='top', fontsize=20, color='lightgray')
 
-    
-        #Curseur interactif
-        cursor = mplcursors.cursor(line_segments, hover=True)
-        price_text = self.ax.text(0.05, 0.90, "",transform=self.ax.transAxes,ha='left', va='top',fontsize=20, color='lightgray')
+        self.ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
 
-        @cursor.connect("add")
-        def on_add(sel):
-            sel.annotation.set_visible(False)
-            price_text.set_text(f"Prix : {sel.target[1]:.2f}")
-            self.canvas.draw_idle()
+        def on_move(event):
+            if event.xdata and event.ydata:
+                price_text.set_text(f"Prix : {event.ydata:.2f}")
+                self.canvas.draw_idle()
+
+        self.fig.canvas.mpl_connect("motion_notify_event", on_move)
 
         self.canvas.draw_idle()
-
-
-        
 
     def clear_main_frame(self):
         for widget in self.winfo_children():
@@ -134,4 +123,4 @@ class Graph(ctk.CTkFrame):
     def retour(self):
         from watchlist import Watchlist
         self.clear_main_frame()
-        Watchlist(self.master, self.stocks, self.temps, self.compte)
+        self.watchlist = Watchlist(self.master, self.stocks, self.temps, self.compte)

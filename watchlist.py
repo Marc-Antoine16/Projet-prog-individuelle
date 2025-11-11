@@ -20,6 +20,12 @@ class Watchlist(ctk.CTkFrame):
         self.options = pd.read_csv("https://raw.githubusercontent.com/datasets/s-and-p-500-companies/master/data/constituents.csv")["Symbol"].tolist()
         self.options_with_placeholder = ["Ajouter..."] + self.options
         self.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
+        self.dropdown_window = ctk.CTkToplevel(self)
+        self.dropdown_window.overrideredirect(True)
+        self.dropdown_window.lift()
+        self.dropdown_window.attributes("-topmost", True)
+        self.dropdown_window.withdraw()
+        self.dropdown_buttons = []
         self.create_widgets()
 
     def create_widgets(self):
@@ -29,15 +35,12 @@ class Watchlist(ctk.CTkFrame):
         self.titre_label = ctk.CTkLabel(self, text="Watchlist", font=("Arial", 30, "bold"))
         self.titre_label.grid(row=0, column=0, pady=(10,10))
 
-        self.bouton_compte = ctk.CTkButton(self, text = "Deconnexion", fg_color="transparent", hover_color="red", font=("Arial", 24), command= lambda : self.logout())
-        self.bouton_compte.grid(row = 8, column = 0, pady = (10,10))
+        self.bouton_deconnexion = ctk.CTkButton(self, text = "Deconnexion", fg_color="transparent", hover_color="red", font=("Arial", 24), command= lambda : self.logout())
+        self.bouton_deconnexion.grid(row = 8, column = 0, pady = (10,10))
 
-        self.barre_recherche = ctk.StringVar()
-        self.mot_cherche = ctk.CTkEntry(self, textvariable=self.barre_recherche, placeholder_text="Rechercher une action...")
+        self.mot_cherche = ctk.CTkEntry(self, placeholder_text="Rechercher une action...")
         self.mot_cherche.grid(row=0, column=4, padx=(10,10), pady=(10,10))
-        self.barre_recherche.trace_add("write", self.update_dropdown)
-
-        self.dropdown_window = None
+        self.mot_cherche.bind("<KeyRelease>", lambda e: self.update_dropdown())
 
         
         self.bouton_compte = ctk.CTkButton(self, text = "Compte", fg_color="transparent", hover_color="red", font=("Arial", 24), command = self.ouvrir_compte)
@@ -161,44 +164,48 @@ class Watchlist(ctk.CTkFrame):
 
 
     def update_dropdown(self, *args):
-        recherche = self.barre_recherche.get().upper()
-
-        if self.dropdown_window is not None and self.dropdown_window.winfo_exists():
-            self.dropdown_window.destroy()
-
-        if recherche == "":
-            return
-
-        valeurs_filtrees = [option for option in self.options if recherche in option]
-
-        if not valeurs_filtrees:
-            return
-
-        self.dropdown_window = ctk.CTkToplevel(self)
-        self.dropdown_window.overrideredirect(True)
-        self.dropdown_window.lift()
-        self.dropdown_window.attributes("-topmost", True)
-
+        recherche = self.mot_cherche.get().upper()
         x = self.mot_cherche.winfo_rootx()
         y = self.mot_cherche.winfo_rooty() + self.mot_cherche.winfo_height()
         self.dropdown_window.geometry(f"+{x}+{y}")
 
-        for valeur in valeurs_filtrees[:10]:
-            btn = ctk.CTkButton(
-                self.dropdown_window,
-                text=valeur,
-                width=self.mot_cherche.winfo_width(),
-                fg_color="gray20",
-                hover_color="gray35",
-                command=lambda v=valeur: self.selectionne_option(v)
-            )
-            btn.pack(pady=1)
+        if not recherche:
+            self.dropdown_window.withdraw()
+            return
+
+        valeurs_filtrees = [opt for opt in self.options if recherche in opt]
+
+        if not valeurs_filtrees:
+            self.dropdown_window.withdraw()
+            return
+
+        self.dropdown_window.deiconify()
+
+        for i, valeur in enumerate(valeurs_filtrees[:10]):
+            if i < len(self.dropdown_buttons):
+                btn = self.dropdown_buttons[i]
+                btn.configure(text=valeur, command=lambda v=valeur: self.selectionne_option(v))
+                btn.pack_forget()
+                btn.pack(pady=1)
+            else:
+                btn = ctk.CTkButton(
+                    self.dropdown_window,
+                    text=valeur,
+                    width=self.mot_cherche.winfo_width(),
+                    fg_color="gray20",
+                    hover_color="gray35",
+                    command=lambda v=valeur: self.selectionne_option(v)
+                )
+                btn.pack(pady=1)
+                self.dropdown_buttons.append(btn)
+
+        for j in range(len(valeurs_filtrees), len(self.dropdown_buttons)):
+            self.dropdown_buttons[j].pack_forget()
 
     def selectionne_option(self, valeur):
-        if self.dropdown_window is not None:
-            self.after(100, self.dropdown_window.destroy)
-
-        self.barre_recherche.set(valeur)
+        self.mot_cherche.delete(0, "end")
+        self.mot_cherche.insert(0, valeur)
+        self.dropdown_window.withdraw()
         self.option_changed(valeur)
 
     def option_changed(self, value): #ajout nouveau stock, créer widgets sans reconstruire la page pour que les labels de rendement deja existant reste visible et continue de se mettre a jour
@@ -284,53 +291,128 @@ class Watchlist(ctk.CTkFrame):
 
     def acheter_stock(self, action):
         self.pause = True
+
         page_achat = ctk.CTkToplevel(self)
-        page_achat.title(f"achat de {action}")
-        page_achat.geometry("300x200")
+        page_achat.title(f"Achat de {action}")
+        page_achat.geometry("420x360")
         page_achat.grab_set()
 
-        self.quantite_label = ctk.CTkLabel(page_achat, text= "quantité : ")
-        self.quantite_label.grid(row=0, column=0, padx=20, pady=(20, 10), sticky="w")
-        self.quantite_entry = ctk.CTkEntry(page_achat, placeholder_text="Entrez la quantité...")
-        self.quantite_entry.grid(row=0, column=1, padx=20, pady=(20, 10), sticky="ew")
-        
-        ou = ctk.CTkLabel(page_achat, text= "OU")
-        ou.grid(row=1, column=0, padx=20, pady=(20, 10), sticky="w")
+        self.prix_action = round(float(self.stocks[action]["Close"].iloc[self.temps - 1]), 2)
 
-        self.prix_label = ctk.CTkLabel(page_achat, text= "prix : ")
-        self.prix_label.grid(row=2, column=0, padx=20, pady=(20, 10), sticky="w")
-        self.prix_entry = ctk.CTkEntry(page_achat, placeholder_text="Entrez le prix...")
-        self.prix_entry.grid(row=2, column=1, padx=20, pady=(20, 10), sticky="ew")
-
-        if(float(self.quantite_entry.get())):
-            self.submit_button = ctk.CTkButton(self, text = "Soumettre", command= self.soumettreAchat(action))
-            self.submit_button.grid(row=3, column=1, padx=20, pady=(20, 10), sticky="ew")
-        
-    def soumettreAchat(self, action):
-        prix_achat = round(self.stocks[action]["Close"].iloc[self.temps - 1].iloc[0], 2)
-        quantite = float(self.quantite_entry.get())
         if self.compte is None:
             from compte import Compte
             self.compte = Compte(self.master, self.stocks, self.temps, action={}, argent=10000)
+            solde = 10000
+        
+        else:
+            solde = self.compte.argent
 
-        if isinstance(self.quantite_entry.get(), int) and self.compte.argent >= prix_achat * self:
-            self.compte.argent -= prix_achat
+        ctk.CTkLabel(page_achat, text=f"Prix actuel : {self.prix_action:.2f}$", font=("Arial", 18, "bold")).pack(pady=(10, 5))
+        ctk.CTkLabel(page_achat, text=f"Solde disponible : {solde:.2f}$", font=("Arial", 16)).pack(pady=(0, 15))
 
+        ctk.CTkLabel(page_achat, text="Choisir le mode d’achat :", font=("Arial", 16)).pack(pady=(0, 10))
+
+        self.mode_achat = ctk.StringVar(value="quantite")
+
+        frame_modes = ctk.CTkFrame(page_achat)
+        frame_modes.pack(pady=(0, 10))
+
+        ctk.CTkRadioButton(frame_modes, text="Quantité", variable=self.mode_achat, value="quantite",
+                        command=lambda: self.switch_mode(page_achat)).grid(row=0, column=0, padx=10)
+        ctk.CTkRadioButton(frame_modes, text="Montant ($)", variable=self.mode_achat, value="prix",
+                        command=lambda: self.switch_mode(page_achat)).grid(row=0, column=1, padx=10)
+
+        
+        self.zone_dynamique = ctk.CTkFrame(page_achat)
+        self.zone_dynamique.pack(pady=(10, 10))
+
+        self.creer_zone_quantite(page_achat, solde)
+
+        self.btn_submit = ctk.CTkButton(page_achat, text="Acheter", state="disabled",
+                                        command=lambda: self.valider_achat(page_achat, action, solde))
+        self.btn_submit.pack(pady=20)
+        
+    def switch_mode(self, page_achat):
+        for widget in self.zone_dynamique.winfo_children():
+            widget.destroy()
+
+        solde = self.compte.argent if self.compte is not None else 10000
+
+        if self.mode_achat.get() == "quantite":
+            self.creer_zone_quantite(page_achat, solde)
+        else:
+            self.creer_zone_prix(page_achat, solde)
+
+
+    def creer_zone_quantite(self, page_achat, solde):
+        self.var_quantite = ctk.StringVar()
+        self.var_quantite.trace_add("write", lambda *a: self.verifier_saisie())
+
+        ctk.CTkLabel(self.zone_dynamique, text="Quantité d'actions :", font=("Arial", 15)).pack(pady=(0, 5))
+        frame_q = ctk.CTkFrame(self.zone_dynamique)
+        frame_q.pack()
+
+        self.quantite_entry = ctk.CTkEntry(frame_q, textvariable=self.var_quantite, width=120, placeholder_text="ex: 10")
+        self.quantite_entry.grid(row=0, column=0, padx=(0, 10))
+
+        ctk.CTkButton(frame_q, text="Max", width=60, command=lambda: self.ajouter_max(solde)).grid(row=0, column=1)
+
+
+    def creer_zone_prix(self, page_achat, solde):
+        self.var_prix = ctk.StringVar()
+        self.var_prix.trace_add("write", lambda *a: self.verifier_saisie())
+
+        ctk.CTkLabel(self.zone_dynamique, text="Montant à investir ($) :", font=("Arial", 15)).pack(pady=(0, 5))
+        self.prix_entry = ctk.CTkEntry(self.zone_dynamique, textvariable=self.var_prix, width=180, placeholder_text="ex: 500")
+        self.prix_entry.pack()
+
+
+    def verifier_saisie(self, *args):
+        if self.mode_achat.get() == "quantite":
+            val = self.var_quantite.get()
+            valide = val.isdigit() and int(val) > 0
+        else:
+            val = self.var_prix.get()
+            try:
+                valide = float(val) > 0
+            except ValueError:
+                valide = False
+
+        self.btn_submit.configure(state="normal" if valide else "disabled")
+
+
+    def ajouter_max(self, solde):
+        quantite_max = int(solde // self.prix_action)
+        self.var_quantite.set(str(quantite_max))
+
+
+    def valider_achat(self, page_achat, action, solde):
+        if self.mode_achat.get() == "quantite":
+            quantite = int(self.var_quantite.get())
+            cout_total = quantite * self.prix_action
+        else:
+            montant = float(self.var_prix.get())
+            quantite = int(montant // self.prix_action)
+            cout_total = quantite * self.prix_action
+
+        if cout_total > solde:
+            self.label = ctk.CTkLabel(self, text="Pas assez de fonds pour acheter cette action", fg_color="dark gray", font=("Arial", 20))
+            self.label.grid(row=3, column=3, padx=(20, 20), pady=(20, 20))
+            self.after(3000, self.label.destroy)
+
+        else:
+            self.compte.argent -= cout_total
             if action in self.compte.action:
                 ancienne_quantite = self.compte.action[action]["quantite"]
                 ancien_prix = self.compte.action[action]["prix_achat"]
 
-                nouveau_prix_moyen = ((ancien_prix * ancienne_quantite) + prix_achat) / (ancienne_quantite + 1)
-                self.compte.action[action]["quantite"] += 1
+                nouveau_prix_moyen = ((ancien_prix * ancienne_quantite) + cout_total) / (quantite)
+                self.compte.action[action]["quantite"] += quantite
 
             else:
-                self.compte.action[action] = {"data": self.stocks[action], "prix_achat": prix_achat, "quantite": 1}
-
-        else:
-            self.label = ctk.CTkLabel(self, text="Pas assez de fonds pour acheter cette action", fg_color="dark gray", font=("Arial", 20))
-            self.label.grid(row=3, column=3, padx=(20, 20), pady=(20, 20))
-            self.after(3000, self.label.destroy)
-    
+                self.compte.action[action] = {"data": self.stocks[action], "prix_achat": cout_total/quantite, "quantite": quantite}
+        page_achat.destroy()
+        self.pause = False
 
     def supprime_stock(self, nom):
         if hasattr(self, "boucle_id"):
