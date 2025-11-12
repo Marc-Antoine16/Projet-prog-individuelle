@@ -38,7 +38,7 @@ class Watchlist(ctk.CTkFrame):
         self.bouton_deconnexion = ctk.CTkButton(self, text = "Deconnexion", fg_color="transparent", hover_color="red", font=("Arial", 24), command= lambda : self.logout())
         self.bouton_deconnexion.grid(row = 8, column = 0, pady = (10,10))
 
-        self.mot_cherche = ctk.CTkEntry(self, placeholder_text="Rechercher une action...")
+        self.mot_cherche = ctk.CTkEntry(self, placeholder_text="Rechercher une action...", width=175)
         self.mot_cherche.grid(row=0, column=4, padx=(10,10), pady=(10,10))
         self.mot_cherche.bind("<KeyRelease>", lambda e: self.update_dropdown())
 
@@ -297,7 +297,7 @@ class Watchlist(ctk.CTkFrame):
         page_achat.geometry("420x360")
         page_achat.grab_set()
 
-        self.prix_action = round(float(self.stocks[action]["Close"].iloc[self.temps - 1]), 2)
+        self.prix_action = round(float(self.stocks[action]["Close"].iloc[self.temps]), 2)
 
         if self.compte is None:
             from compte import Compte
@@ -310,17 +310,15 @@ class Watchlist(ctk.CTkFrame):
         ctk.CTkLabel(page_achat, text=f"Prix actuel : {self.prix_action:.2f}$", font=("Arial", 18, "bold")).pack(pady=(10, 5))
         ctk.CTkLabel(page_achat, text=f"Solde disponible : {solde:.2f}$", font=("Arial", 16)).pack(pady=(0, 15))
 
-        ctk.CTkLabel(page_achat, text="Choisir le mode d’achat :", font=("Arial", 16)).pack(pady=(0, 10))
+        ctk.CTkLabel(page_achat, text="Choisir le mode d'achat :", font=("Arial", 16)).pack(pady=(0, 10))
 
         self.mode_achat = ctk.StringVar(value="quantite")
 
         frame_modes = ctk.CTkFrame(page_achat)
         frame_modes.pack(pady=(0, 10))
 
-        ctk.CTkRadioButton(frame_modes, text="Quantité", variable=self.mode_achat, value="quantite",
-                        command=lambda: self.switch_mode(page_achat)).grid(row=0, column=0, padx=10)
-        ctk.CTkRadioButton(frame_modes, text="Montant ($)", variable=self.mode_achat, value="prix",
-                        command=lambda: self.switch_mode(page_achat)).grid(row=0, column=1, padx=10)
+        ctk.CTkRadioButton(frame_modes, text="Quantité", variable=self.mode_achat, value="quantite", command=lambda: self.switch_mode(page_achat)).grid(row=0, column=0, padx=10)
+        ctk.CTkRadioButton(frame_modes, text="Montant ($)", variable=self.mode_achat, value="prix", command=lambda: self.switch_mode(page_achat)).grid(row=0, column=1, padx=10)
 
         
         self.zone_dynamique = ctk.CTkFrame(page_achat)
@@ -328,8 +326,7 @@ class Watchlist(ctk.CTkFrame):
 
         self.creer_zone_quantite(page_achat, solde)
 
-        self.btn_submit = ctk.CTkButton(page_achat, text="Acheter", state="disabled",
-                                        command=lambda: self.valider_achat(page_achat, action, solde))
+        self.btn_submit = ctk.CTkButton(page_achat, text="Acheter", state="disabled", command=lambda: self.valider_achat(page_achat, action, solde))
         self.btn_submit.pack(pady=20)
         
     def switch_mode(self, page_achat):
@@ -355,7 +352,7 @@ class Watchlist(ctk.CTkFrame):
         self.quantite_entry = ctk.CTkEntry(frame_q, textvariable=self.var_quantite, width=120, placeholder_text="ex: 10")
         self.quantite_entry.grid(row=0, column=0, padx=(0, 10))
 
-        ctk.CTkButton(frame_q, text="Max", width=60, command=lambda: self.ajouter_max(solde)).grid(row=0, column=1)
+        ctk.CTkButton(frame_q, text="Max", width=60, fg_color="grey", hover_color="orange", command=lambda: self.ajouter_max(solde)).grid(row=0, column=1)
 
 
     def creer_zone_prix(self, page_achat, solde):
