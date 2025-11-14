@@ -183,7 +183,6 @@ class Compte(ctk.CTkFrame):
             else:
                 prix_actuel = float(info["data"]["Close"].iloc[-1].iloc[0])
 
-            # Mise à jour du compte
             self.argent += prix_actuel * val
             info["quantite"] -= val
 

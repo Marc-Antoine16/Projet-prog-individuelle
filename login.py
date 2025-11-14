@@ -6,11 +6,12 @@ import os
 
 
 class LoginPage(ctk.CTkFrame):
-    def __init__(self, master= None, stocks =None):
+    def __init__(self, master= None, stocks =None, temps = None):
    
         super().__init__(master)
         self.master = master
         self.stocks = stocks
+        self.temps = temps
 
         # Frame principale où sont les widgets
         self.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
@@ -61,7 +62,7 @@ class LoginPage(ctk.CTkFrame):
             self.message_label.configure(text="Connexion réussie!", text_color="green")
             self.clear_main_frame()
             from watchlist import Watchlist
-            Watchlist(master=self.master, stocks=self.stocks, temps=0, compte=None) # ouvre la page principale Watchlist
+            Watchlist(master=self.master, stocks=self.stocks, temps= self.temps, compte=None) # ouvre la page principale Watchlist
         else:
             self.message_label.configure(text="Identifiants incorrects.", text_color="red")
 

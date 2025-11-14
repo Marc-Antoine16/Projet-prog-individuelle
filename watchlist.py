@@ -159,9 +159,8 @@ class Watchlist(ctk.CTkFrame):
     
     def logout(self):
         self.clear_main_frame()
-        from login import LoginPage
-        LoginPage(master=self, stocks=self.stocks)
-
+        from accueil import Accueil
+        self.accueil = Accueil(master=self.master, stocks=self.stocks, temps=self.temps)
 
     def update_dropdown(self, *args):
         recherche = self.mot_cherche.get().upper()
@@ -365,9 +364,10 @@ class Watchlist(ctk.CTkFrame):
 
 
     def verifier_saisie(self, *args):
+        max = int(self.compte.argent // self.prix_action)
         if self.mode_achat.get() == "quantite":
             val = self.var_quantite.get()
-            valide = val.isdigit() and int(val) > 0
+            valide = val.isdigit() and max >= int(val) > 0
         else:
             val = self.var_prix.get()
             try:

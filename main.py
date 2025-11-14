@@ -6,9 +6,10 @@ from watchlist import Watchlist
 from graphe import Graph
 from login import LoginPage
 from datetime import date
+from accueil import Accueil
 
 
-APP_GEOMETRY = "900x700"
+APP_GEOMETRY = "900x800"
 APP_TITLE = "Paper Trading"
 
 class MainApp(ctk.CTk):
@@ -24,13 +25,16 @@ class MainApp(ctk.CTk):
             "NVDA" : yf.download("NVDA", start="2024-01-01", end=f"{self.date}", interval="1d", auto_adjust=True)
         }
         self.protocol("WM_DELETE_WINDOW", self.quit)
-        self.show_login()
+        self.show_accueil()   # mettre show_login()
 
     def show_watchlist(self):
         self.current_page = Watchlist(master=self,stocks=self.stocks, temps= 1)
 
     def show_login(self):
-        self.current_page = LoginPage(master=self, stocks=self.stocks)
+        self.current_page = LoginPage(master=self, stocks=self.stocks, temps = 1)
+    
+    def show_accueil(self):
+        self.current_page = Accueil(master=self,stocks=self.stocks, temps= 1)
     
 if __name__ == "__main__":
     app = MainApp() 

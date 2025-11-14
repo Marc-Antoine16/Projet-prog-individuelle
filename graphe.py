@@ -25,7 +25,6 @@ class Graph(ctk.CTkFrame):
         self.master.grid_rowconfigure(0, weight=1)
         self.master.grid_columnconfigure(0, weight=1)
 
-        #Graphique initiale
         self.fig, self.ax = plt.subplots(figsize=(10, 7))
         self.fig.patch.set_facecolor("black")
         self.ax.set_facecolor("black")
@@ -53,7 +52,6 @@ class Graph(ctk.CTkFrame):
 
             base_scale = 1.2
 
-            # Sens du zoom
             if event.button == 'up':
                 scale_factor = 1 / base_scale
             elif event.button == 'down':
@@ -61,23 +59,18 @@ class Graph(ctk.CTkFrame):
             else:
                 return
 
-            # Limites actuelles
             xlim = self.ax.get_xlim()
 
             xdata = event.xdata if event.xdata is not None else (xlim[0] + xlim[1]) / 2
 
-            # Nouvelle taille
             new_width = (xlim[1] - xlim[0]) * scale_factor
 
-            # Calcul proportionnel
             relx = (xlim[1] - xdata) / (xlim[1] - xlim[0])
 
-            # Mise à jour des axes
             self.ax.set_xlim([xdata - new_width * (1 - relx), xdata + new_width * relx])
 
             self.canvas.draw_idle()
 
-        # Connecte l'événement de molette
         self.canvas.mpl_connect("scroll_event", zoom)
         
         self.dessiner_graphique(self.stocks[self.nom])
