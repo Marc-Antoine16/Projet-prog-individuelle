@@ -121,6 +121,12 @@ class Accueil(ctk.CTkFrame):
             self.boucle_id = self.after(5000, self.boucle_stock)
     
     def update_dropdown(self, *args):
+        if self.dropdown_window is not None:
+            if not self.dropdown_window.winfo_exists():
+                self.dropdown_window = None
+ 
+        if not hasattr(self, "dropdown_window") or not self.dropdown_window.winfo_exists():
+            return
         recherche = self.mot_cherche.get().upper()
         x = self.mot_cherche.winfo_rootx()
         y = self.mot_cherche.winfo_rooty() + self.mot_cherche.winfo_height()
@@ -226,25 +232,56 @@ class Accueil(ctk.CTkFrame):
         if hasattr(self, "boucle_id"):
             try:
                 self.after_cancel(self.boucle_id)
-            except Exception:
+            except:
                 pass
 
         if nom in self.stocks:
             del self.stocks[nom]
 
-        if hasattr(self, "prix_buttons"):
+        if hasattr(self, "prix_label"):
             self.prix_label.clear()
+
         if hasattr(self, "rendement_labels"):
             self.rendement_labels.clear()
+
         if hasattr(self, "date_label") and self.date_label is not None:
             try:
                 self.date_label.destroy()
-            except Exception:
+            except:
                 pass
             self.date_label = None
 
-        self.clear_main_frame()
-        self.create_widgets()
+        for widget in self.winfo_children():
+
+            if isinstance(widget, ctk.CTkToplevel):
+                continue
+
+            info = widget.grid_info()
+            if info and "row" in info and int(info["row"]) >= 1:
+                widget.destroy()
+
+        i = 1
+        for stock in self.stocks:
+
+            titre = ctk.CTkLabel(self, text=stock, font=("Arial", 24, "bold"))
+            titre.grid(row=i, column=0, pady=(10,10))
+
+            btn_sup = ctk.CTkButton(self, text="❎", fg_color="transparent", hover_color="red", font=("Arial", 24), width=60, height=60, command=lambda s=stock: self.supprime_stock(s))
+            btn_sup.grid(row=i, column=4, pady=(10,10))
+
+            # Label prix (sera mis à jour par boucle_stock)
+            self.prix_label[stock] = ctk.CTkLabel(self, text="", font=("Arial", 24, "bold"))
+            self.prix_label[stock].grid(row=i, column=1, pady=(10,10))
+
+            # Label rendement (sera mis à jour aussi)
+            self.rendement_labels[stock] = ctk.CTkLabel(self, text="", font=("Arial", 14))
+            self.rendement_labels[stock].grid(row=i, column=3, pady=(10,10))
+
+            i += 1
+
+        # 7) Redémarrer la boucle de mise à jour
+        self.boucle_stock()
+        
 
     def clear_main_frame(self):
         if hasattr(self, "boucle_id"):

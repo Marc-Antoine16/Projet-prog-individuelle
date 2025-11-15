@@ -17,6 +17,7 @@ class Watchlist(ctk.CTkFrame):
         self.temps = temps
         self.compte = compte
         self.pause = False
+        self.date_label = None
         self.options = pd.read_csv("https://raw.githubusercontent.com/datasets/s-and-p-500-companies/master/data/constituents.csv")["Symbol"].tolist()
         self.options_with_placeholder = ["Ajouter..."] + self.options
         self.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
@@ -163,6 +164,12 @@ class Watchlist(ctk.CTkFrame):
         self.accueil = Accueil(master=self.master, stocks=self.stocks, temps=self.temps)
 
     def update_dropdown(self, *args):
+        if self.dropdown_window is not None:
+            if not self.dropdown_window.winfo_exists():
+                self.dropdown_window = None
+
+        if not hasattr(self, "dropdown_window") or not self.dropdown_window.winfo_exists():
+            return
         recherche = self.mot_cherche.get().upper()
         x = self.mot_cherche.winfo_rootx()
         y = self.mot_cherche.winfo_rooty() + self.mot_cherche.winfo_height()
@@ -371,7 +378,7 @@ class Watchlist(ctk.CTkFrame):
         else:
             val = self.var_prix.get()
             try:
-                valide = float(val) > 0
+                valide = self.compte.argent >= float(val) > 0
             except ValueError:
                 valide = False
 
@@ -425,6 +432,8 @@ class Watchlist(ctk.CTkFrame):
             self.prix_buttons.clear()
         if hasattr(self, "rendement_labels"):
             self.rendement_labels.clear()
+
+        # Supprimer la dat
         if hasattr(self, "date_label") and self.date_label is not None:
             try:
                 self.date_label.destroy()
@@ -432,5 +441,61 @@ class Watchlist(ctk.CTkFrame):
                 pass
             self.date_label = None
 
-        self.clear_main_frame()
-        self.create_widgets()
+        for widget in self.winfo_children():
+            if hasattr(widget, "grid_info"):
+                info = widget.grid_info()
+                if info and "row" in info and info["row"] >= 0:
+                    widget.destroy()
+
+        self.titre_label = ctk.CTkLabel(self, text="Watchlist", font=("Arial", 30, "bold"))
+        self.titre_label.grid(row=0, column=0, pady=(10,10))
+
+        self.mot_cherche = ctk.CTkEntry(self, placeholder_text="Rechercher une action...", width=175)
+        self.mot_cherche.grid(row=0, column=4, padx=(10,10), pady=(10,10))
+        self.mot_cherche.bind("<KeyRelease>", lambda e: self.update_dropdown())
+
+        self.bouton_compte = ctk.CTkButton(
+            self, text="Compte", fg_color="transparent", hover_color="red",
+            font=("Arial", 24), command=self.ouvrir_compte
+        )
+        self.bouton_compte.grid(row=7, column=0, pady=(10,10))
+
+        self.bouton_deconnexion = ctk.CTkButton(
+            self, text="Deconnexion", fg_color="transparent", hover_color="red",
+            font=("Arial", 24), command=self.logout
+        )
+        self.bouton_deconnexion.grid(row=8, column=0, pady=(10,10))
+
+        i = 1
+        for stock in self.stocks:
+
+            btn_action = ctk.CTkButton(
+                self, text=stock, fg_color="transparent", hover_color="lightpink",
+                font=("Arial", 24, "bold"), command=lambda s=stock: self.onButtonClicked(s)
+            )
+            btn_action.grid(row=i, column=0, pady=(10,10))
+
+            btn_graph = ctk.CTkButton(
+                self, text="📈", fg_color="transparent", hover_color="orange",
+                font=("Arial", 24), width=60, height=60,
+                command=lambda s=stock: self.ouvrir_graph(s)
+            )
+            btn_graph.grid(row=i, column=9, pady=(10,10))
+
+            btn_sup = ctk.CTkButton(
+                self, text="❎", fg_color="transparent", hover_color="red",
+                font=("Arial", 24), width=60, height=60,
+                command=lambda s=stock: self.supprime_stock(s)
+            )
+            btn_sup.grid(row=i, column=10, pady=(10,10))
+
+            btn_achat = ctk.CTkButton(
+                self, text="Acheter", fg_color="transparent", hover_color="green",
+                font=("Arial", 24), width=80, height=60,
+                command=lambda a=stock: self.acheter_stock(a)
+            )
+            btn_achat.grid(row=i, column=4, pady=(10,10))
+
+            i += 1
+
+        self.boucle_stock()
