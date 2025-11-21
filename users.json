@@ -1,1 +1,19 @@
-{"admin": "1234", "gab": "1234", "marc": "gab", "zack": "1234", "gab87": "987", "lt": "beau", "george": "456", "LTP": "bolle", "hdbdb": "dhfhddh", "Marc": "1234", "Julien": "sim"}
+{
+    "1": {
+        "password": "2",
+        "temps": 23,
+        "argent": 10787.93457244873,
+        "actions": {
+            "NVDA": {
+                "prix_achat": 62.43,
+                "quantite": 2
+            }
+        }
+    },
+    "2": {
+        "password": "3",
+        "temps": 13,
+        "argent": 9218.799974365234,
+        "actions": {}
+    }
+}

@@ -2,13 +2,10 @@ import customtkinter as ctk
 import time
 
 class Info(ctk.CTkFrame):
-    def __init__(self, master=None, stocks=None, nom=None, temps=None, compte=None):
+    def __init__(self, master=None, nom=None):
         super().__init__(master)
         self.master = master
-        self.stocks = stocks
         self.nom = nom
-        self.temps = temps
-        self.compte = compte
         self.create_widgets()
 
     def create_widgets(self):
@@ -26,7 +23,7 @@ class Info(ctk.CTkFrame):
         self.titre_prix = ctk.CTkLabel(self, text="Prix", font=("Arial", 30, "bold"))
         self.titre_prix.grid(row=1, column=2, padx=(30, 0), pady=(5, 20))
 
-        date = self.stocks[self.nom].index[0].date()
+        date = self.master.stocks[self.nom].index[0].date()
         self.date_label = ctk.CTkLabel(self, text=f"date : {date}", text_color="light gray", font=("Arial", 20))
         self.date_label.grid(row=0, column=3, padx=(0, 50), pady=(5, 10))
 
@@ -78,10 +75,10 @@ class Info(ctk.CTkFrame):
         self.boucle_stock()
 
     def boucle_stock(self):
-        if self.temps >= len(self.stocks[self.nom]['Close']):
-            self.temps = 1
+        if self.master.temps >= len(self.master.stocks[self.nom]['Close']):
+            self.master.temps = 1
 
-        stock = self.stocks[self.nom].iloc[self.temps]
+        stock = self.master.stocks[self.nom].iloc[self.master.temps]
         open = round(float(stock['Open']), 2)
         close = round(float(stock['Close']), 2)
         high = round(float(stock['High']), 2)
@@ -89,7 +86,7 @@ class Info(ctk.CTkFrame):
         volume = round(float(stock['Volume']), 2)
         pourcentage = round((close - open) / open * 100, 2)
         variation = round((close - open), 2)
-        date = self.stocks[self.nom].index[self.temps].date()
+        date = self.master.stocks[self.nom].index[self.master.temps].date()
 
         self.open_label.configure(text=open)
         self.close_label.configure(text=close)
@@ -100,7 +97,7 @@ class Info(ctk.CTkFrame):
         self.variation_label.configure(text=variation)
         self.date_label.configure(text=f"date : {date}")
 
-        self.temps += 1
+        self.master.temps += 1
         self.boucle_id = self.after(5000, self.boucle_stock)
 
     def clear_main_frame(self):
@@ -112,4 +109,4 @@ class Info(ctk.CTkFrame):
     def retour(self):
         from watchlist import Watchlist
         self.clear_main_frame()
-        Watchlist(self.master, self.stocks, self.temps, self.compte)
+        Watchlist(self.master)

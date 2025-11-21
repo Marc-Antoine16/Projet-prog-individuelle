@@ -7,11 +7,9 @@ import threading as th
 from login import LoginPage
 
 class Accueil(ctk.CTkFrame):
-    def __init__(self, master=None, stocks=None, temps = None):
+    def __init__(self, master=None):
         super().__init__(master)
         self.master = master
-        self.stocks = stocks
-        self.temps = temps
         self.pause = False
         self.dropdown_window = ctk.CTkToplevel(self)
         self.options = pd.read_csv("https://raw.githubusercontent.com/datasets/s-and-p-500-companies/master/data/constituents.csv")["Symbol"].tolist()
@@ -39,7 +37,7 @@ class Accueil(ctk.CTkFrame):
         self.mot_cherche.bind("<KeyRelease>", lambda e: self.update_dropdown())
 
         i = 1
-        for stock in self.stocks:
+        for stock in self.master.stocks:
             self.titre_action = ctk.CTkLabel(self, text=stock, font=("Arial", 24, "bold"))
             self.titre_action.grid(row=i, column=0, pady=(10,10))
             
@@ -52,10 +50,10 @@ class Accueil(ctk.CTkFrame):
         self.boucle_stock()
 
     def boucle_stock(self):
-        if not self.stocks:
+        if not self.master.stocks:
             if self.date_label is not None:
                 self.date_label.configure(text="Aucun stock")
-            self.temps += 1
+            self.master.temps += 1
             self.boucle_id = self.after(5000, self.boucle_stock)
             return
         if not hasattr(self, "prix_buttons"):
@@ -65,14 +63,14 @@ class Accueil(ctk.CTkFrame):
         if not hasattr(self, "date_label"):
             self.date_label = None
 
-        if self.temps >= len(self.stocks[next(iter(self.stocks))]['Close']):
-            self.temps = 0
+        if self.master.temps >= len(self.master.stocks[next(iter(self.master.stocks))]['Close']):
+            self.master.temps = 0
 
-        for i, stock in enumerate(self.stocks, start=1):
-            data = self.stocks[stock]
+        for i, stock in enumerate(self.master.stocks, start=1):
+            data = self.master.stocks[stock]
             y = data["Close"]
 
-            prix = round(float(y.iloc[self.temps]), 2)
+            prix = round(float(y.iloc[self.master.temps]), 2)
             textePrix=str(prix)
 
             if stock not in self.prix_label:
@@ -81,9 +79,9 @@ class Accueil(ctk.CTkFrame):
             else:
                 self.prix_label[stock].configure(text=str(prix))
 
-            if self.temps >= 1:  #au moins deux jours
-                dernier = float(y.iloc[self.temps])
-                avant_dernier = float(y.iloc[self.temps - 1])
+            if self.master.temps >= 1:  #au moins deux jours
+                dernier = float(y.iloc[self.master.temps])
+                avant_dernier = float(y.iloc[self.master.temps - 1])
                 variation = dernier - avant_dernier
                 pourcentage = (variation / avant_dernier) * 100
             else:
@@ -108,7 +106,7 @@ class Accueil(ctk.CTkFrame):
             else:
                 self.rendement_labels[stock].configure(text=f"{signe}{variation} $ ({signe}{pourcentage}%) la dernière journée.",text_color=couleur,  font=("Arial", 14))
 
-        date_text = self.stocks[next(iter(self.stocks))].index[self.temps].date()
+        date_text = self.master.stocks[next(iter(self.master.stocks))].index[self.master.temps].date()
 
         if self.date_label is None:
             self.date_label = ctk.CTkLabel(self,text=date_text,text_color="light gray",font=("Arial", 24))
@@ -117,7 +115,7 @@ class Accueil(ctk.CTkFrame):
             self.date_label.configure(text=date_text)
 
         if self.pause == False:
-            self.temps += 1
+            self.master.temps += 1
             self.boucle_id = self.after(5000, self.boucle_stock)
     
     def update_dropdown(self, *args):
@@ -168,11 +166,11 @@ class Accueil(ctk.CTkFrame):
         if value == "Ajouter...":
             return
         
-        if value in self.stocks:  # déjà dans la watchlist
+        if value in self.master.stocks:  # déjà dans la watchlist
             return
         
         self.label_chargement = ctk.CTkLabel(self, text=f"Téléchargement de {value}...", font=("Arial", 16))
-        self.label_chargement.grid(row=len(self.stocks) + 1, column=0, pady=(10,10))
+        self.label_chargement.grid(row=len(self.master.stocks) + 1, column=0, pady=(10,10))
 
         th.Thread(target=self.telecharger_action, args=(value,), daemon=True).start()
 
@@ -195,8 +193,8 @@ class Accueil(ctk.CTkFrame):
         if hasattr(self, "label_chargement"):
             self.label_chargement.destroy()
 
-        self.stocks[value] = df
-        i = len(self.stocks)
+        self.master.stocks[value] = df
+        i = len(self.master.stocks)
 
         titre_action = ctk.CTkLabel(self, text=value, font=("Arial", 24, "bold"))
         titre_action.grid(row=i, column=0, padx = (10, 10), pady=(10,10))
@@ -204,13 +202,13 @@ class Accueil(ctk.CTkFrame):
         btn_sup = ctk.CTkButton(self, text="❎", fg_color="transparent", hover_color="red", font=("Arial", 24), width=60, height=60, command=lambda s=value: self.supprime_stock(s))
         btn_sup.grid(row=i, column=4, pady=(10,10))
 
-        prix = round(float(df["Close"].iloc[self.temps]), 2)
+        prix = round(float(df["Close"].iloc[self.master.temps]), 2)
         self.prix_label[value] = ctk.CTkLabel(self, text=str(prix), font=("Arial", 24, "bold"))
         self.prix_label[value].grid(row=i, column=1, pady=(10,10))
 
-        if self.temps >= 1:
-            dernier = float(df["Close"].iloc[self.temps])
-            avant_dernier = float(df["Close"].iloc[self.temps - 1])
+        if self.master.temps >= 1:
+            dernier = float(df["Close"].iloc[self.master.temps])
+            avant_dernier = float(df["Close"].iloc[self.master.temps - 1])
             variation = dernier - avant_dernier
             pourcentage = (variation / avant_dernier) * 100
         else:
@@ -235,8 +233,8 @@ class Accueil(ctk.CTkFrame):
             except:
                 pass
 
-        if nom in self.stocks:
-            del self.stocks[nom]
+        if nom in self.master.stocks:
+            del self.master.stocks[nom]
 
         if hasattr(self, "prix_label"):
             self.prix_label.clear()
@@ -261,7 +259,7 @@ class Accueil(ctk.CTkFrame):
                 widget.destroy()
 
         i = 1
-        for stock in self.stocks:
+        for stock in self.master.stocks:
 
             titre = ctk.CTkLabel(self, text=stock, font=("Arial", 24, "bold"))
             titre.grid(row=i, column=0, pady=(10,10))
@@ -295,4 +293,4 @@ class Accueil(ctk.CTkFrame):
 
     def ouvrir_login(self):
         self.clear_main_frame()
-        self.login = LoginPage(master=self.master, stocks=self.stocks, temps=self.temps)
+        self.login = LoginPage(master=self.master)

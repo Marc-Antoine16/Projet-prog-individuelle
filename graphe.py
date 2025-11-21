@@ -9,13 +9,10 @@ import matplotlib.dates as mdates
 
 
 class Graph(ctk.CTkFrame):
-    def __init__(self, master=None, stocks = None, nom = None, temps = None, compte = None):
+    def __init__(self, master=None, nom = None):
         super().__init__(master)
         self.master = master
-        self.stocks = stocks
         self.nom = nom
-        self.temps = temps
-        self.compte = compte
         self.create_widgets()
 
 
@@ -73,7 +70,7 @@ class Graph(ctk.CTkFrame):
 
         self.canvas.mpl_connect("scroll_event", zoom)
         
-        self.dessiner_graphique(self.stocks[self.nom])
+        self.dessiner_graphique(self.master.stocks[self.nom])
 
     def dessiner_graphique(self, dataf):
         self.ax.clear()
@@ -116,4 +113,4 @@ class Graph(ctk.CTkFrame):
     def retour(self):
         from watchlist import Watchlist
         self.clear_main_frame()
-        self.watchlist = Watchlist(self.master, self.stocks, self.temps, self.compte)
+        self.watchlist = Watchlist(self.master)

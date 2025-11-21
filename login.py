@@ -6,12 +6,10 @@ import os
 
 
 class LoginPage(ctk.CTkFrame):
-    def __init__(self, master= None, stocks =None, temps = None):
+    def __init__(self, master= None):
    
         super().__init__(master)
         self.master = master
-        self.stocks = stocks
-        self.temps = temps
 
         # Frame principale où sont les widgets
         self.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
@@ -43,10 +41,9 @@ class LoginPage(ctk.CTkFrame):
         self.create_button.grid(row=5, column=0, pady=6)
 
     def attempt_login(self):
-
-        # Récuère le nom d'utilisateur et le mot de passe dans les entry
-        username = self.username_entry.get().strip()
-        password = self.password_entry.get().strip()
+        # Récupère les infos entrées
+        self.username = self.username_entry.get().strip()
+        self.password = self.password_entry.get().strip()
 
         users_file = "users.json"
 
@@ -57,12 +54,48 @@ class LoginPage(ctk.CTkFrame):
         with open(users_file, "r") as f:
             users = json.load(f)
 
-        # vérifie si username existe et correspond au password
-        if username in users and users[username] == password:
+        if self.username in users and users[self.username]["password"] == self.password:
+            self.master.user = self.username
+            self.master.password = self.password
+            saved_actions = users[self.username].get("actions", {})
+            self.master.temps = users[self.username].get("temps", 0)
+            self.argent = users[self.username].get("argent", 10000)
+
+            # Reconstruire les actions avec les DataFrames
+            from datetime import date
+            import yfinance as yf
+
+            actions_reconstruites = {}
+            for action_name, info in saved_actions.items():
+                try:
+                    df = yf.download(
+                        action_name,
+                        start="2024-01-01",
+                        end=f"{date.today()}",
+                        interval="1d",
+                        auto_adjust=True
+                    )
+                    if df.empty:
+                        df = None
+                except Exception:
+                    df = None
+
+                actions_reconstruites[action_name] = {
+                    "data": df,
+                    "prix_achat": info.get("prix_achat", 0),
+                    "quantite": info.get("quantite", 0)
+                }
+
+            from compte import Compte
+            self.master.compte = Compte(
+                master=self.master,
+                action=actions_reconstruites,
+                argent=self.argent
+            )
             self.message_label.configure(text="Connexion réussie!", text_color="green")
             self.clear_main_frame()
             from watchlist import Watchlist
-            Watchlist(master=self.master, stocks=self.stocks, temps= self.temps, compte=None) # ouvre la page principale Watchlist
+            Watchlist(master=self.master)
         else:
             self.message_label.configure(text="Identifiants incorrects.", text_color="red")
 
@@ -74,11 +107,11 @@ class LoginPage(ctk.CTkFrame):
     def create_account(self):
 
         # Récupère les infos entrées
-        username = self.username_entry.get().strip()
-        password = self.password_entry.get().strip()
+        self.username = self.username_entry.get().strip()
+        self.password = self.password_entry.get().strip()
 
         # Vérifie que les deux champs sont remplis
-        if not username or not password:
+        if not self.username or not self.password:
             self.message_label.configure(text="Veuillez remplir tous les champs.", text_color="red")
             return
 
@@ -91,12 +124,12 @@ class LoginPage(ctk.CTkFrame):
                 users = json.load(f)
 
        
-        if username in users:
+        if self.username in users:
             self.message_label.configure(text="Ce nom d'utilisateur existe déjà.", text_color="red")
             return
 
         # Ajoute nouveau compte dictionnaire
-        users[username] = password
+        users[self.username] = {"password": self.password, "temps" : 0, "actions": {}, "argent": 10000}
         
         # Sauvegarde fichier avec nouveau compte
         with open(users_file, "w") as f:

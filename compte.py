@@ -1,14 +1,13 @@
 import customtkinter as ctk
 
 class Compte(ctk.CTkFrame):
-    def __init__(self, master = None, stocks = None, temps = None, action = None, argent = None):
+    def __init__(self, master = None, action = None, argent = None):
         super().__init__(master)
         self.master = master
-        self.stocks = stocks
         self.action = action if action is not None else {}
-        self.temps = temps
         self.pause = False
         self.argent = float(argent)
+        self.user = self.master.user
 
     def create_widgets(self):
         self.grid(row=0, column=0, padx=20, pady=20, sticky="nsew")
@@ -36,7 +35,7 @@ class Compte(ctk.CTkFrame):
         for nom, info in self.action.items():
             prix_achat = info["prix_achat"]
 
-            prix_actuel = round(info["data"]["Close"].iloc[self.temps].iloc[0], 2) if self.temps < len(info["data"]["Close"]) else round(info["data"]["Close"].iloc[-1].iloc[0], 2)
+            prix_actuel = round(info["data"]["Close"].iloc[self.master.temps].iloc[0], 2) if self.master.temps < len(info["data"]["Close"]) else round(info["data"]["Close"].iloc[-1].iloc[0], 2)
 
             pourcentage = round(float((prix_actuel - prix_achat) / prix_achat) * 100, 2)
 
@@ -58,9 +57,9 @@ class Compte(ctk.CTkFrame):
         self.update_affichage()
 
     def update_affichage(self):
-        if self.temps == len(self.stocks[next(iter(self.stocks))]['Close']):
-            self.temps = 1
-        else:
+        if self.master.temps == len(self.master.stocks[next(iter(self.master.stocks))]['Close']):
+            self.master.temps = 1
+        elif self.pause == False:
             for widget in list(self.winfo_children()):
                 try:
                     info = widget.grid_info()
@@ -72,7 +71,7 @@ class Compte(ctk.CTkFrame):
             i = 2
             for nom, info in self.action.items():
                 prix_achat = float(info["prix_achat"])
-                t = int(self.temps)
+                t = int(self.master.temps)
                 try:
                     prix_actuel = float(info["data"]["Close"].iloc[t].iloc[0])
                 except Exception:
@@ -98,10 +97,10 @@ class Compte(ctk.CTkFrame):
                 bouton_vendre.grid(row=i, column=5, padx=0, pady=5)
                 i += 1
 
-            if len(self.stocks) > 0:
-                premier_stock = next(iter(self.stocks))
+            if len(self.master.stocks) > 0:
+                premier_stock = next(iter(self.master.stocks))
                 try:
-                    date_str = str(self.stocks[premier_stock].index[self.temps].date())
+                    date_str = str(self.master.stocks[premier_stock].index[self.master.temps].date())
                 except Exception:
                     date_str = ""
                 if hasattr(self, "date_label") and self.date_label.winfo_exists():
@@ -113,9 +112,8 @@ class Compte(ctk.CTkFrame):
             if hasattr(self, "argent_label") and self.argent_label.winfo_exists():
                 self.argent_label.configure(text=f"{self.argent:.2f} $")
 
-            if not self.pause:
-                self.temps += 1
-                self.boucle_id = self.after(5000, lambda: self.update_affichage())
+            self.master.temps += 1
+            self.boucle_id = self.after(5000, lambda: self.update_affichage())
 
     def clear_main_frame(self):
         if hasattr(self, "boucle_id"):
@@ -125,6 +123,12 @@ class Compte(ctk.CTkFrame):
             widget.destroy()
 
     def vendre_action(self, action):
+        if hasattr(self, "boucle_id"):
+            try:
+                self.after_cancel(self.boucle_id)
+            except Exception:
+                pass
+
         self.pause = True
 
         page_vente = ctk.CTkToplevel(self)
@@ -132,7 +136,9 @@ class Compte(ctk.CTkFrame):
         page_vente.geometry("420x300")
         page_vente.grab_set()
 
-        self.prix_action = round(float(self.stocks[action]["Close"].iloc[self.temps]), 2)
+        page_vente.protocol("WM_DELETE_WINDOW", lambda: self.on_close_vente(page_vente))
+
+        self.prix_action = round(float(self.master.stocks[action]["Close"].iloc[self.master.temps]), 2)
         quantite_max = self.action[action]["quantite"]
 
         ctk.CTkLabel(page_vente, text=f"Prix actuel : {self.prix_action:.2f}$", font=("Arial", 18, "bold")).pack(pady=(10, 5))
@@ -167,6 +173,11 @@ class Compte(ctk.CTkFrame):
                     self.error_label.configure(text=f"Entrez un nombre entre 1 et {quantite_max}")
 
         self.quantite_entry.bind("<KeyRelease>", on_entry_change)
+    
+    def on_close_vente(self, window):
+        self.pause = False
+        window.destroy()
+        self.update_affichage()
 
     def valider_vente(self, page_vente, action):
         val = self.quantite_entry.get()
@@ -178,8 +189,8 @@ class Compte(ctk.CTkFrame):
         quantite_actuelle = info["quantite"]
 
         if 0 < val <= quantite_actuelle:
-            if self.temps < len(info["data"]["Close"]):
-                prix_actuel = float(info["data"]["Close"].iloc[self.temps].iloc[0])
+            if self.master.temps < len(info["data"]["Close"]):
+                prix_actuel = float(info["data"]["Close"].iloc[self.master.temps].iloc[0])
             else:
                 prix_actuel = float(info["data"]["Close"].iloc[-1].iloc[0])
 
@@ -200,8 +211,8 @@ class Compte(ctk.CTkFrame):
             i = 2
             for nom, info in self.action.items():
                 prix_achat = float(info["prix_achat"])
-                if self.temps < len(info["data"]["Close"]):
-                    prix_actuel = float(round(info["data"]["Close"].iloc[self.temps].iloc[0], 2))
+                if self.master.temps < len(info["data"]["Close"]):
+                    prix_actuel = float(round(info["data"]["Close"].iloc[self.master.temps].iloc[0], 2))
                 else:
                     prix_actuel = float(round(info["data"]["Close"].iloc[-1].iloc[0], 2))
 
@@ -226,6 +237,5 @@ class Compte(ctk.CTkFrame):
 
     def retour(self):
         from watchlist import Watchlist
-        nouveau_compte = Compte(self.master, self.stocks, self.temps, self.action, self.argent)
         self.clear_main_frame()
-        Watchlist(self.master, self.stocks, self.temps, nouveau_compte)
+        Watchlist(self.master)
