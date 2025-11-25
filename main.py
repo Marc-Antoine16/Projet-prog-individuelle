@@ -21,6 +21,7 @@ class MainApp(ctk.CTk):
         ctk.set_appearance_mode("Dark")      
         self.geometry(APP_GEOMETRY)
         self.title(APP_TITLE)
+        self.app_is_active = True
         self.user = None
         self.password = None
         self.compte = None
@@ -61,25 +62,28 @@ class MainApp(ctk.CTk):
             "actions": {}
         }
 
-        for action, info in self.compte.action.items():
-            data_user["actions"][action] = {
-                "prix_achat": info.get("prix_achat", 0),
-                "quantite": info.get("quantite", 0)
-            }
+        if self.compte is not None:
+            for action, info in self.compte.action.items():
+                data_user["actions"][action] = {
+                    "prix_achat": info.get("prix_achat", 0),
+                    "quantite": info.get("quantite", 0)
+                }
+        else: 
+            pass
 
-        # Met à jour ou ajoute l'utilisateur dans le dictionnaire complet
         users[username] = data_user
 
-        # Sauvegarde le fichier complet avec tous les comptes
         try:
             with open(JSON_PATH, "w", encoding="utf-8") as f:
                 json.dump(users, f, indent=4, ensure_ascii=False)
             print("Données sauvegardées avec succès !")
         except Exception as e:
             print("Erreur lors de la sauvegarde :", e)
+
+        self.app_is_active = False
     
         self.destroy()
-        self.quit()
+        os._exit(0)
         
     
 if __name__ == "__main__":

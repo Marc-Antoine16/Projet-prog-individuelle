@@ -75,6 +75,9 @@ class Info(ctk.CTkFrame):
         self.boucle_stock()
 
     def boucle_stock(self):
+        if not self.master.app_is_active:
+            return
+        
         if self.master.temps >= len(self.master.stocks[self.nom]['Close']):
             self.master.temps = 1
 
@@ -97,8 +100,9 @@ class Info(ctk.CTkFrame):
         self.variation_label.configure(text=variation)
         self.date_label.configure(text=f"date : {date}")
 
-        self.master.temps += 1
-        self.boucle_id = self.after(5000, self.boucle_stock)
+        if self.master.app_is_active:
+            self.master.temps += 1
+            self.boucle_id = self.after(5000, self.boucle_stock)
 
     def clear_main_frame(self):
         if hasattr(self, "boucle_id"):

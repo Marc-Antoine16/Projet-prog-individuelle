@@ -59,7 +59,7 @@ class Compte(ctk.CTkFrame):
     def update_affichage(self):
         if self.master.temps == len(self.master.stocks[next(iter(self.master.stocks))]['Close']):
             self.master.temps = 1
-        elif self.pause == False:
+        elif self.pause == False and self.master.app_is_active:
             for widget in list(self.winfo_children()):
                 try:
                     info = widget.grid_info()

@@ -70,6 +70,9 @@ class Watchlist(ctk.CTkFrame):
         self.boucle_stock()
 
     def boucle_stock(self):
+        if not self.master.app_is_active:
+            return
+        
         if not self.master.stocks:
             if self.date_label is not None:
                 self.date_label.configure(text="Aucun stock")
@@ -87,7 +90,7 @@ class Watchlist(ctk.CTkFrame):
         #Reset du temps si dépasse le nombre de jours
         if self.master.temps >= len(self.master.stocks[next(iter(self.master.stocks))]['Close']):
             self.master.temps = 0
-        if self.pause == False:
+        if self.pause == False and self.master.app_is_active:
             for i, stock in enumerate(self.master.stocks, start=1):
                 data = self.master.stocks[stock]
                 y = data["Close"]

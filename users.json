@@ -1,19 +1,8 @@
 {
     "1": {
         "password": "2",
-        "temps": 23,
-        "argent": 10787.93457244873,
-        "actions": {
-            "NVDA": {
-                "prix_achat": 62.43,
-                "quantite": 2
-            }
-        }
-    },
-    "2": {
-        "password": "3",
-        "temps": 13,
-        "argent": 9218.799974365234,
+        "temps": 6,
+        "argent": 10081.99987487793,
         "actions": {}
     }
 }
