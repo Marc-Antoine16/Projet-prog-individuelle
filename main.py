@@ -33,7 +33,7 @@ class MainApp(ctk.CTk):
             "NVDA" : yf.download("NVDA", start="2024-01-01", end=f"{self.date}", interval="1d", auto_adjust=True)
         }
         self.protocol("WM_DELETE_WINDOW", self.close_app)
-        self.show_accueil()   # mettre show_login()
+        self.show_accueil()
 
     def show_watchlist(self):
         self.watchlist = Watchlist(master=self)
@@ -55,30 +55,30 @@ class MainApp(ctk.CTk):
 
         username = self.user
 
-        data_user = {
-            "password": self.password,
-            "temps": self.temps,
-            "argent": self.compte.argent if self.compte else 10000,
-            "actions": {}
-        }
-
         if self.compte is not None:
+            data_user = {
+                "password": self.password,
+                "temps": self.temps,
+                "argent": self.compte.argent,
+                "actions": {}
+            }
+        
             for action, info in self.compte.action.items():
                 data_user["actions"][action] = {
                     "prix_achat": info.get("prix_achat", 0),
                     "quantite": info.get("quantite", 0)
                 }
+
+            users[username] = data_user
+
+            try:
+                with open(JSON_PATH, "w", encoding="utf-8") as f:
+                    json.dump(users, f, indent=4, ensure_ascii=False)
+                print("Données sauvegardées avec succès !")
+            except Exception as e:
+                print("Erreur lors de la sauvegarde :", e)
         else: 
             pass
-
-        users[username] = data_user
-
-        try:
-            with open(JSON_PATH, "w", encoding="utf-8") as f:
-                json.dump(users, f, indent=4, ensure_ascii=False)
-            print("Données sauvegardées avec succès !")
-        except Exception as e:
-            print("Erreur lors de la sauvegarde :", e)
 
         self.app_is_active = False
     

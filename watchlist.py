@@ -462,8 +462,9 @@ class Watchlist(ctk.CTkFrame):
                 ancienne_quantite = self.master.compte.action[action]["quantite"]
                 ancien_prix = self.master.compte.action[action]["prix_achat"]
 
-                nouveau_prix_moyen = ((ancien_prix * ancienne_quantite) + cout_total) / (quantite)
+                nouveau_prix_moyen = ((ancien_prix * ancienne_quantite) + cout_total) / (quantite + ancienne_quantite)
                 self.master.compte.action[action]["quantite"] += quantite
+                self.master.compte.action[action]["prix_achat"] = nouveau_prix_moyen
 
             else:
                 self.master.compte.action[action] = {"data": self.master.stocks[action], "prix_achat": cout_total/quantite, "quantite": quantite}

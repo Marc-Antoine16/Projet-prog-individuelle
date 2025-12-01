@@ -13,17 +13,14 @@ class Graph(ctk.CTkFrame):
         self.master = master
         self.nom = nom
 
-        # ids des callbacks mpl (initialisés à None)
         self._motion_cid = None
         self._scroll_cid = None
 
-        # références sûres
         self.canvas = None
         self.fig = None
         self.ax = None
         self.price_text = None
 
-        # bind destroy (proprement)
         self.bind("<Destroy>", self._on_destroy, add=True)
 
         self.create_widgets()
@@ -37,7 +34,6 @@ class Graph(ctk.CTkFrame):
         except Exception:
             pass
 
-        # --- figure & axes ---
         self.fig, self.ax = plt.subplots(figsize=(10, 7))
         self.fig.patch.set_facecolor("black")
         self.ax.set_facecolor("black")
@@ -52,20 +48,16 @@ class Graph(ctk.CTkFrame):
         self.ax.title.set_color('white')
         self.ax.grid(False)
 
-        # retour
         self.boutton_retour = ctk.CTkButton(
             self, text="⬅️", fg_color="transparent", hover_color="gray",
             font=("Arial", 40), command=self.retour
         )
         self.boutton_retour.grid(row=0, column=0, padx=5, pady=0, sticky="nsew")
 
-        # canvas TK
         self.canvas = FigureCanvasTkAgg(self.fig, master=self)
         self.canvas.get_tk_widget().grid(row=1, column=0, columnspan=3, pady=(10, 10))
 
-        # connect scroll (zoom) et sauvegarde l'id
         def zoom(event):
-            # sécurité : si l'app est en train de fermer, ne rien faire
             if not getattr(self.master, "app_is_active", True):
                 return
             if getattr(event, "name", None) != 'scroll_event':
@@ -85,29 +77,24 @@ class Graph(ctk.CTkFrame):
                 new_width = (xlim[1] - xlim[0]) * scale_factor
                 relx = (xlim[1] - xdata) / (xlim[1] - xlim[0])
                 self.ax.set_xlim([xdata - new_width * (1 - relx), xdata + new_width * relx])
-                # draw sans exception si canvas détruit
                 try:
                     self.canvas.draw_idle()
                 except Exception:
                     pass
             except Exception:
-                # jamais laisser une exception sortir d'un callback tkinter/mpl
                 traceback.print_exc()
 
         try:
             self._scroll_cid = self.canvas.mpl_connect("scroll_event", zoom)
         except Exception:
-            # fallback : canvas indisponible
             self._scroll_cid = None
 
-        # dessine le graphique
         try:
             self.dessiner_graphique(self.master.stocks[self.nom])
         except Exception:
             traceback.print_exc()
 
     def dessiner_graphique(self, dataf):
-        # sécurité : ne rien faire si la frame a été détruite
         if not getattr(self, "ax", None):
             return
 
@@ -129,11 +116,9 @@ class Graph(ctk.CTkFrame):
             ohlc = df[["DateNum", "Open", "High", "Low", "Close"]].values
 
             candlestick_ohlc(self.ax, ohlc, width=0.6, colorup='green', colordown='red', alpha=1.0)
-            # une ligne légèrement visible (ou invisible) pour référence
             self.ax.plot(df["DateNum"], df["Close"], linestyle="-", linewidth=1, alpha=0.15, color="black")
             self.ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
 
-            # prix affiché en haut-gauche (transform = axes)
             dernier_prix = float(df["Close"].iloc[-1])
             if self.price_text is None:
                 self.price_text = self.ax.text(
@@ -145,7 +130,6 @@ class Graph(ctk.CTkFrame):
                 try:
                     self.price_text.set_text(f"{dernier_prix:.2f} $")
                 except Exception:
-                    # si price_text est invalide, recrée-le
                     try:
                         self.price_text = self.ax.text(
                             0.01, 0.95, f"{dernier_prix:.2f} $",
@@ -155,9 +139,8 @@ class Graph(ctk.CTkFrame):
                     except Exception:
                         pass
 
-            # mouvement souris : update du texte (mais on ne crée pas d'annotation mobile)
             def _on_move(event):
-                if not getattr(self.master, "app_is_active", True):
+                if self.master.app_is_active is False:
                     return
                 try:
                     if event.inaxes is not self.ax:
@@ -169,7 +152,6 @@ class Graph(ctk.CTkFrame):
                     idx = int(np.argmin(np.abs(arr - x)))
                     prix = float(df["Close"].iloc[idx])
                     if self.price_text is not None:
-                        # protège draw_idle contre exceptions après destruction
                         try:
                             self.price_text.set_text(f"{prix:.2f} $")
                             self.canvas.draw_idle()
@@ -178,7 +160,6 @@ class Graph(ctk.CTkFrame):
                 except Exception:
                     traceback.print_exc()
 
-            # (re)connecte le motion handler en stockant l'id
             try:
                 if self._motion_cid is not None:
                     try:
@@ -190,7 +171,6 @@ class Graph(ctk.CTkFrame):
             except Exception:
                 self._motion_cid = None
 
-            # draw initial
             try:
                 self.canvas.draw_idle()
             except Exception:
@@ -199,16 +179,12 @@ class Graph(ctk.CTkFrame):
         except Exception:
             traceback.print_exc()
 
-    # called automatically on Destroy events; event.widget may be child widgets too
     def _on_destroy(self, event):
-        # ne déclencher cleanup que si c'est la frame elle-même qui est détruite
         if event.widget is not self:
             return
         self.cleanup()
 
     def cleanup(self):
-        """Déconnecte proprement tous les callbacks et ferme la figure."""
-        # déconnecte motion
         try:
             if getattr(self, "_motion_cid", None) is not None and getattr(self, "canvas", None) is not None:
                 try:
@@ -219,7 +195,6 @@ class Graph(ctk.CTkFrame):
         except Exception:
             pass
 
-        # déconnecte scroll
         try:
             if getattr(self, "_scroll_cid", None) is not None and getattr(self, "canvas", None) is not None:
                 try:
@@ -230,7 +205,6 @@ class Graph(ctk.CTkFrame):
         except Exception:
             pass
 
-        # retire le texte si présent
         try:
             if getattr(self, "price_text", None) is not None:
                 try:
@@ -241,7 +215,6 @@ class Graph(ctk.CTkFrame):
         except Exception:
             pass
 
-        # close figure (dernière étape)
         try:
             if getattr(self, "fig", None) is not None:
                 try:
@@ -254,7 +227,6 @@ class Graph(ctk.CTkFrame):
             pass
 
     def clear_main_frame(self):
-        # utilisé quand on change de page volontairement
         self.cleanup()
         for widget in list(self.winfo_children()):
             try:
@@ -263,7 +235,6 @@ class Graph(ctk.CTkFrame):
                 pass
 
     def retour(self):
-        # cleanup + retour à Watchlist
         self.clear_main_frame()
         from watchlist import Watchlist
         Watchlist(self.master)
