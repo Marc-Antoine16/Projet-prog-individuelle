@@ -11,24 +11,19 @@ class LoginPage(ctk.CTkFrame):
         super().__init__(master)
         self.master = master
 
-        # Frame principale où sont les widgets
         self.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
         self.master.grid_rowconfigure(0, weight=1)
         self.master.grid_columnconfigure(0, weight=1)
 
-        # Titre de la page
         title = ctk.CTkLabel(self, text="Connexion", font=("Arial", 18, "bold"))
         title.grid(row=0, column=0, pady=(10, 20))
 
-        # Champ nom utilisateur
         self.username_entry = ctk.CTkEntry(self, placeholder_text="Nom d'utilisateur")
         self.username_entry.grid(row=1, column=0, padx=10, pady=8, sticky="ew",)
 
-        # Champ mot de passe
         self.password_entry = ctk.CTkEntry(self, placeholder_text="Mot de passe", show="*")
         self.password_entry.grid(row=2, column=0, padx=10, pady=8, sticky="ew")
 
-        # Label pour afficher messages d"erreur / succès
         self.message_label = ctk.CTkLabel(self, text="", text_color="red")
         self.message_label.grid(row=3, column=0, pady=(4, 8))
 
@@ -41,7 +36,6 @@ class LoginPage(ctk.CTkFrame):
         self.create_button.grid(row=5, column=0, pady=6)
 
     def attempt_login(self):
-        # Récupère les infos entrées
         self.username = self.username_entry.get().strip()
         self.password = self.password_entry.get().strip()
 
@@ -61,7 +55,6 @@ class LoginPage(ctk.CTkFrame):
             self.master.temps = users[self.username].get("temps", 0)
             self.argent = users[self.username].get("argent", 10000)
 
-            # Reconstruire les actions avec les DataFrames
             from datetime import date
             import yfinance as yf
 
@@ -128,10 +121,8 @@ class LoginPage(ctk.CTkFrame):
             self.message_label.configure(text="Ce nom d'utilisateur existe déjà.", text_color="red")
             return
 
-        # Ajoute nouveau compte dictionnaire
         users[self.username] = {"password": self.password, "temps" : 0, "actions": {}, "argent": 10000}
         
-        # Sauvegarde fichier avec nouveau compte
         with open(users_file, "w") as f:
             json.dump(users, f)
 
