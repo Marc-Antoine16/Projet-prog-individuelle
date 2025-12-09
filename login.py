@@ -99,11 +99,9 @@ class LoginPage(ctk.CTkFrame):
        
     def create_account(self):
 
-        # Récupère les infos entrées
         self.username = self.username_entry.get().strip()
         self.password = self.password_entry.get().strip()
 
-        # Vérifie que les deux champs sont remplis
         if not self.username or not self.password:
             self.message_label.configure(text="Veuillez remplir tous les champs.", text_color="red")
             return
@@ -120,6 +118,12 @@ class LoginPage(ctk.CTkFrame):
         if self.username in users:
             self.message_label.configure(text="Ce nom d'utilisateur existe déjà.", text_color="red")
             return
+        
+        validation, message = self.valider_password()
+        
+        if validation == False:
+            self.message_label.configure(text= message)
+            return
 
         users[self.username] = {"password": self.password, "temps" : 0, "actions": {}, "argent": 10000}
         
@@ -127,3 +131,49 @@ class LoginPage(ctk.CTkFrame):
             json.dump(users, f)
 
         self.message_label.configure(text="Compte créé avec succès!", text_color="green")
+    
+    def valider_password(self):
+        liste = ["@", "!", "%", "&", "$", "?", "(", ")"]
+        chiffre = False
+        majuscule = False
+        minuscule = False
+        caractere = False
+        for lettre in self.password:
+            if lettre.isdigit():
+                chiffre = True
+            
+            if lettre.isupper():
+                majuscule = True
+
+            if lettre.islower():
+                minuscule = True
+
+            if lettre in liste:
+                caractere = True
+
+        text = ""  
+        validite = True 
+        
+        if len(self.password) < 5:
+            validite = False
+            text +=  " Mot de passe trop court. "
+        
+        if minuscule == False:
+            validite = False
+            text += "Il faut au moins une lettre minuscule. "
+
+        if majuscule == False:
+            validite = False
+            text += "Il faut une majuscule. "
+        
+        if chiffre == False:
+            validite = False
+            text += "Il manque un chiffre. "
+
+        if caractere == False:
+            validite = False
+            text += "Il manque un caractère spécial. "
+
+        return validite, text
+            
+    
